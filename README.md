@@ -1,1 +1,9 @@
-# AIMS_gaussian_processes
+# AIMS Gaussian Processes
+
+
+## Create a venv
+```
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
