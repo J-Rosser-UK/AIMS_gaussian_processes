@@ -1,7 +1,8 @@
 import torch
 import numpy as np
+import torch.nn as nn
 
-class CovarianceFunction:
+class CovarianceFunction(nn.Module):
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
     
