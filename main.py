@@ -5,6 +5,7 @@ import numpy as np
 from load_data import get_data
 from covariance_functions import CovarianceFunction,  Periodic, SquaredExponentialPlusPeriodic
 from torch import nn
+from tqdm import tqdm
 
 class SquaredExponential(CovarianceFunction):
     def __init__(self, l: float, sigma_f: float):
@@ -18,8 +19,6 @@ class SquaredExponential(CovarianceFunction):
         return self.sigma_f**2 * torch.exp(-0.5 * dist / self.l**2)
     
    
-
-
 
 class GaussianProcess:
     def __init__(self, kernel: CovarianceFunction, noise_variance: float=0.2, jitter:float = 1e-8):   
@@ -66,8 +65,9 @@ class GaussianProcess:
         noise_variance = self.noise_variance * torch.eye(self.X_train.size(0))
         K += noise_variance + self.jitter * torch.eye(self.X_train.size(0))
         
-        L = torch.cholesky(K)
-        alpha = torch.cholesky_solve(self.y_train.unsqueeze(1), L)
+        L = torch.linalg.cholesky(K)
+    
+        alpha = torch.cholesky_solve(self.y_train, L)
 
         log_marg_likelihood = -0.5 * self.y_train.T @ alpha - torch.sum(torch.log(torch.diag(L))) - 0.5 * self.X_train.size(0) * torch.log(2 * torch.tensor(np.pi))
 
@@ -78,7 +78,7 @@ class GaussianProcess:
         # Assume self.kernel has parameters l and sigma_f as tensors
         optimizer = torch.optim.Adam(self.kernel.parameters(), lr=learning_rate)
 
-        for i in range(n_iters):
+        for i in tqdm(range(n_iters)):
             optimizer.zero_grad()  # Clear the gradients
             loss = -self.log_marginal_likelihood()  # Minimize the negative log marginal likelihood
             loss.backward()  # Compute the gradients
@@ -86,6 +86,9 @@ class GaussianProcess:
             
             if i % 10 == 0:
                 print(f"Iteration {i+1}/{n_iters} - Loss: {loss.item()}")
+
+        # Print the final optimized hyperparameters
+        print(f"Optimized hyperparameters: l={self.kernel.l.item()}, sigma_f={self.kernel.sigma_f.item()}")
     
 
 def plot_gp(X_train, y_train, X_test, X_underlying, y_underlying, mean_pred, cov_pred):
@@ -121,7 +124,7 @@ def main():
     gp.fit(X_train, y_train)
 
     # Optimize hyperparameters
-    gp.optimize_hyperparameters(learning_rate=0.01, n_iters=100)
+    gp.optimize_hyperparameters(learning_rate=0.1, n_iters=1000)
 
     # Predict the missing values
     mean_pred, cov_pred = gp.predict(X_test)
@@ -130,8 +133,6 @@ def main():
     plot_gp(X_train, y_train, X_test, X_underlying, y_underlying, mean_pred, cov_pred)
 
         
-
-
        
 
 if __name__ == "__main__":
