@@ -1,34 +1,71 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import torch
 
-# Load the data into a pandas DataFrame
-df = pd.read_csv('sotonmet.txt', parse_dates=['Update Date and Time (ISO)', 'Reading Date and Time (ISO)'])
+def get_data():
 
-# Set the 'Reading Date and Time (ISO)' as the index
-df.set_index('Reading Date and Time (ISO)', inplace=True)
+    # Load the data into a pandas DataFrame
+    df = pd.read_csv('sotonmet.txt', parse_dates=['Update Date and Time (ISO)', 'Reading Date and Time (ISO)'])
 
-# Create subplots
-fig, axs = plt.subplots(nrows=5, ncols=2, figsize=(15, 20))
-fig.suptitle('Sotonmet Data Over Time')
 
-# Print a list of column names
-for col in df.columns:
-    print(col)
+    df.drop_duplicates(inplace=True, subset='Reading Date and Time (ISO)')
 
-# List of columns to plot (excluding those that contain '(ISO)' in the name)
-columns_to_plot = [col for col in df.columns if '(ISO)' not in col]
+    # Set the 'Reading Date and Time (ISO)' as the index
+    df.set_index('Reading Date and Time (ISO)', inplace=True)
 
-# List all columns with both tide and height in the name
-columns_to_plot = [col for col in df.columns if 'tide' in col.lower() and 'height' in col.lower()]
+    # Drop duplicates in reading date and time
 
-# Plot each column
-for ax, column in zip(axs.flatten(), columns_to_plot):
-    ax.plot(df.index, df[column])
-    ax.set_title(column)
-    ax.set_xlabel('Time')
-    ax.set_ylabel(column)
+    # Convert reading times into a datetime object
+    reading_times = pd.to_datetime(df.index.values)
 
-# Adjust layout
-plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-plt.show()
+    # Convert reading times to minutes since the first reading
+    reading_times = (reading_times - reading_times[0]).total_seconds()/60
 
+
+    # update index in dataframe
+    df.index = reading_times
+
+    tide_height, reading_times = df['Tide height (m)'].values, df.index.values
+   
+    # Turn this into an array of floats eg [[reading_times_1, tide_height_1], [reading_times_2, tide_height_2], ...]
+    tide_height_data = torch.tensor(list(zip(reading_times, tide_height)), dtype=torch.float32)
+
+    # Let the train data be points where the tide height is not NaN
+    X_train, y_train = tide_height_data[~torch.isnan(tide_height_data[:, 1])].split(1, dim=1)
+    
+
+    # Let the test data be points where the tide height is NaN
+    X_test, _ = tide_height_data[torch.isnan(tide_height_data[:, 1])].split(1, dim=1)  
+
+    # Get the underlying data
+    y_underlying, X_underlying = df['True tide height (m)'].values, df.index.values
+
+    # centre the y axis data
+    y_underlying = y_underlying - y_underlying.mean()
+
+    y_train = y_train - y_train.mean()
+
+
+    return X_train, y_train, X_test, _, X_underlying, y_underlying
+
+
+def plot_samples_and_underlying_data(X_train, y_train, X_underlying, y_underlying):
+    """
+        Plot the training data as crosses and the underlying distribution as a solid line
+        on the same plot.
+    """
+    plt.plot(X_train, y_train, 'kx', ms=8 ,label='Training input-target pairs $\{(x_i, f_i | i = 1,...,n)\}$')
+    plt.plot(X_underlying, y_underlying, 'b-', label='Underlying distribution')
+    plt.legend()
+
+    plt.show()
+
+
+def main():
+    X_train, y_train, X_test, _, X_underlying, y_underlying = get_data()
+    print(X_train)
+    plot_samples_and_underlying_data(X_train, y_train, X_underlying, y_underlying)
+
+
+if __name__ == '__main__':
+    main()
