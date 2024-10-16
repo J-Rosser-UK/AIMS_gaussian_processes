@@ -3,23 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from load_data import get_data
+from covariance_functions import CovarianceFunction, SquaredExponential, Periodic, SquaredExponentialPlusPeriodic
     
-
-class CovarianceFunction:
-    def __call__(self, *args, **kwargs):
-        raise NotImplementedError
-    
-
-class SquaredExponential(CovarianceFunction):
-    def __init__(self, l:float = 700.0, sigma_f:float = 1.0):
-        self.l = l
-        self.sigma_f = sigma_f
-
-    def __call__(self, x1: torch.Tensor, x2: torch.Tensor):
-      
-        dist_matrix = (x1.unsqueeze(1) - x2.unsqueeze(0)).pow(2).sum(-1)
-
-        return self.sigma_f**2 * torch.exp(-0.5 * dist_matrix / self.l**2)
 
 
 class GaussianProcess:
@@ -87,7 +72,8 @@ def main():
     X_train, y_train, X_test, _, X_underlying, y_underlying = get_data()
 
     # Initialize the kernel and Gaussian Process
-    kernel = SquaredExponential(l=50.0, sigma_f=1.0)
+    kernel = SquaredExponentialPlusPeriodic(l=50.0, sigma_f=1.0)
+    kernel = Periodic(p=1000.0, sigma_f=1.0)
     gp = GaussianProcess(kernel)
 
     # Fit the GP to the training data
