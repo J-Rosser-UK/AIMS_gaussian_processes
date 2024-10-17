@@ -3,21 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from load_data import get_data
-from covariance_functions import CovarianceFunction,  Periodic, SquaredExponentialPlusPeriodic
-from torch import nn
+from covariance_functions import CovarianceFunction, SquaredExponential, Periodic, SquaredExponentialPlusPeriodic, SquaredExponentialTimesPeriodic
 from tqdm import tqdm
-
-class SquaredExponential(CovarianceFunction):
-    def __init__(self, l: float, sigma_f: float):
-        super(SquaredExponential, self).__init__()
-        # Register parameters so that they can be optimized
-        self.l = nn.Parameter(torch.tensor(l))
-        self.sigma_f = nn.Parameter(torch.tensor(sigma_f))
-    
-    def forward(self, X1, X2):
-        dist = (X1.unsqueeze(1) - X2.unsqueeze(0)).pow(2).sum(2)
-        return self.sigma_f**2 * torch.exp(-0.5 * dist / self.l**2)
-    
    
 
 class GaussianProcess:
@@ -43,8 +30,9 @@ class GaussianProcess:
 
         print(np.linalg.cond(K.detach().numpy()))
         
-        # Cholesky decomposition
-        self.K_inv = torch.inverse(K)
+        # Cholesky inverse
+        L = torch.linalg.cholesky(K)
+        self.K_inv = torch.cholesky_inverse(L)
 
     def predict(self, X_test: torch.Tensor):
         # Covariance between test points and training points
@@ -112,19 +100,21 @@ def plot_gp(X_train, y_train, X_test, X_underlying, y_underlying, mean_pred, cov
 
 def main():
 
-        
     X_train, y_train, X_test, _, X_underlying, y_underlying = get_data()
 
     # Initialize the kernel and Gaussian Process
     kernel = SquaredExponential(l=50.0, sigma_f=1.0)
-    # kernel = Periodic(p=1000.0, sigma_f=1.0)
+    kernel = SquaredExponentialPlusPeriodic(l=50.0, sigma_f=1.0, p=100.0)
+    kernel = Periodic(l=50.0, sigma_f=1.0, p=100.0)
+    kernel = SquaredExponentialTimesPeriodic(l=50.0, sigma_f=1.0, p=100.0)
+
     gp = GaussianProcess(kernel)
 
     # Fit the GP to the training data
     gp.fit(X_train, y_train)
 
     # Optimize hyperparameters
-    gp.optimize_hyperparameters(learning_rate=0.1, n_iters=1000)
+    gp.optimize_hyperparameters(learning_rate=0.5, n_iters=100)
 
     # Predict the missing values
     mean_pred, cov_pred = gp.predict(X_test)
