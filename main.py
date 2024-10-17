@@ -5,6 +5,7 @@ import numpy as np
 from load_data import get_data
 from covariance_functions import CovarianceFunction, SquaredExponential, Periodic, SquaredExponentialPlusPeriodic, SquaredExponentialTimesPeriodic
 from tqdm import tqdm
+from pprint import pprint
    
 
 class GaussianProcess:
@@ -62,8 +63,7 @@ class GaussianProcess:
         return log_marg_likelihood
     
     def optimize_hyperparameters(self, learning_rate=0.01, n_iters=100):
-        # Define the hyperparameters you want to optimize (e.g., kernel parameters)
-        # Assume self.kernel has parameters l and sigma_f as tensors
+
         optimizer = torch.optim.Adam(self.kernel.parameters(), lr=learning_rate)
 
         for i in tqdm(range(n_iters)):
@@ -75,16 +75,42 @@ class GaussianProcess:
             if i % 10 == 0:
                 print(f"Iteration {i+1}/{n_iters} - Loss: {loss.item()}")
 
-        # Print the final optimized hyperparameters
-        print(f"Optimized hyperparameters: l={self.kernel.l.item()}, sigma_f={self.kernel.sigma_f.item()}")
+        print(f"Final loss: {loss.item()}")
+        final_params = {name: param.item() for name, param in self.kernel.named_parameters()}
+        pprint(f"Final parameters: {final_params}")
+
     
+    def plot_draws_from_gp(self, X_test, n_draws=10):
+
+        # Predict the mean and covariance on test data
+        mean_s, cov_s = self.predict(X_test)
+
+        mean_s = mean_s.detach().numpy()
+        cov_s = cov_s.detach().numpy()
+
+        # Generate samples from the predictive distribution
+        n_samples = 5  # Number of random draws to plot
+        samples = np.random.multivariate_normal(mean_s.flatten(), cov_s, n_samples)
+
+        # Plot the results
+        plt.figure(figsize=(10, 6))
+        plt.plot(X_test.numpy(), mean_s, 'b-', lw=2, label='Predictive mean')
+
+        for i in range(n_samples):
+            plt.plot(X_test.numpy(), samples[i], lw=1.5, label=f'Sample {i+1}')
+
+        plt.legend()
+        plt.title('Gaussian Process Regression with Random Samples')
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        plt.grid(True)
+        plt.show()
+        
 
 def plot_gp(X_train, y_train, X_test, X_underlying, y_underlying, mean_pred, cov_pred):
     std = np.sqrt(np.diag(cov_pred.detach().numpy())) 
     mean_pred = mean_pred.detach().numpy()
 
-   
-    
     fig = plt.figure(figsize=(12, 12))
 
     plt.title("GP Regression")
@@ -104,9 +130,9 @@ def main():
 
     # Initialize the kernel and Gaussian Process
     kernel = SquaredExponential(l=50.0, sigma_f=1.0)
-    kernel = SquaredExponentialPlusPeriodic(l=50.0, sigma_f=1.0, p=100.0)
-    kernel = Periodic(l=50.0, sigma_f=1.0, p=100.0)
-    kernel = SquaredExponentialTimesPeriodic(l=50.0, sigma_f=1.0, p=100.0)
+    # # kernel = SquaredExponentialPlusPeriodic(l=50.0, sigma_f=1.0, p=100.0, omega=1.0)
+    # kernel = Periodic(omega=1.0, sigma_f=1.0, p=500.0)
+    # kernel = SquaredExponentialTimesPeriodic(l=50.0, sigma_f=1.0, p=500.0, omega=1.0)
 
     gp = GaussianProcess(kernel)
 
@@ -118,6 +144,8 @@ def main():
 
     # Predict the missing values
     mean_pred, cov_pred = gp.predict(X_test)
+
+    gp.plot_draws_from_gp(X_test, n_draws=10)
 
     # Plot the results using the covariance predictions as fill between
     plot_gp(X_train, y_train, X_test, X_underlying, y_underlying, mean_pred, cov_pred)
