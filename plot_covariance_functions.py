@@ -1,7 +1,7 @@
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
-from covariance_functions import SquaredExponential
+from kernels import SquaredExponential
 
 # Assuming the class SquaredExponential is already defined
 

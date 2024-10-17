@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from load_data import get_data
-from covariance_functions import CovarianceFunction, SquaredExponential, Periodic, SquaredExponentialPlusPeriodic, SquaredExponentialTimesPeriodic
+from kernels import CovarianceFunction, SquaredExponential, Periodic, SquaredExponentialPlusPeriodic, SquaredExponentialTimesPeriodic
 from tqdm import tqdm
 from pprint import pprint
    
@@ -29,7 +29,7 @@ class GaussianProcess:
         jitter = self.jitter * torch.eye(X_train.size(0))
         K += jitter
 
-        print(np.linalg.cond(K.detach().numpy()))
+        print("Condition Number: ", np.linalg.cond(K.detach().numpy()))
         
         # Cholesky inverse
         L = torch.linalg.cholesky(K)
@@ -65,6 +65,7 @@ class GaussianProcess:
     def optimize_hyperparameters(self, learning_rate=0.01, n_iters=100):
 
         optimizer = torch.optim.Adam(self.kernel.parameters(), lr=learning_rate)
+        
 
         for i in tqdm(range(n_iters)):
             optimizer.zero_grad()  # Clear the gradients
@@ -140,7 +141,7 @@ def main():
     gp.fit(X_train, y_train)
 
     # Optimize hyperparameters
-    gp.optimize_hyperparameters(learning_rate=0.5, n_iters=100)
+    # gp.optimize_hyperparameters(learning_rate=0.5, n_iters=100)
 
     # Predict the missing values
     mean_pred, cov_pred = gp.predict(X_test)

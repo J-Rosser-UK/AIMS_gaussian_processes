@@ -1,6 +1,6 @@
 from load_data import get_data
 import torch
-from covariance_functions import SquaredExponential
+from kernels import SquaredExponential
 from main import GaussianProcess
 
 def root_mean_squared_error(y_true, y_pred):

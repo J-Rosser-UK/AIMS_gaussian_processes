@@ -19,7 +19,10 @@ class CovarianceFunction(nn.Module):
         """
         Plots the covariance matrix and a 1D slice for any kernel.
         """
-        X_range=(-1000, 1000)
+        # Get class name e.g. "SquaredExponential" to add to the title
+        kernel_name = self.__class__.__name__
+
+        X_range=(-4000, 4000)
         num_points=100
         slice_point=0.0
 
@@ -36,7 +39,7 @@ class CovarianceFunction(nn.Module):
         plt.subplot(1, 2, 1)
         plt.imshow(cov_matrix, cmap='viridis', extent=(X_range[0], X_range[1], X_range[0], X_range[1]))
         plt.colorbar()
-        plt.title('Covariance Matrix')
+        plt.title(f'{kernel_name} Covariance Matrix')
         plt.xlabel('x1')
         plt.ylabel('x2')
 
@@ -48,7 +51,7 @@ class CovarianceFunction(nn.Module):
         # Plot the slice
         plt.subplot(1, 2, 2)
         plt.plot(X.numpy(), slice_values[0], label=f'Slice at x1 = {slice_point}')
-        plt.title('Kernel Slice')
+        plt.title(f'{kernel_name} Kernel Slice')
         plt.xlabel('x2')
         plt.ylabel('Covariance')
         plt.legend()
@@ -99,27 +102,31 @@ class SquaredExponentialTimesPeriodic(CovarianceFunction):
 
     def forward(self, x1: torch.Tensor, x2: torch.Tensor):
         return self.squared_exponential(x1, x2) * self.periodic(x1, x2)
+    
+
+
+    
 
 
 if __name__ == "__main__":
     # Plot all covariance functions
 
     # Squared Exponential
-    kernel = SquaredExponential(l=50.0, sigma_f=1.0)
+    kernel = SquaredExponential(l=500.0, sigma_f=1.0)
     kernel.print_params()
     kernel.plot()
 
-    # Periodic
-    kernel = Periodic(omega=50.0, sigma_f=1.0, p=1000.0)
-    kernel.print_params()
-    kernel.plot()
+    # # Periodic
+    # kernel = Periodic(omega=1.0, sigma_f=1.0, p=500.0)
+    # kernel.print_params()
+    # kernel.plot()
 
-    # Squared Exponential + Periodic
-    kernel = SquaredExponentialPlusPeriodic(l=500.0, sigma_f=1.0, p=20.0, omega=1.0)
-    kernel.print_params()
-    kernel.plot()
+    # # Squared Exponential + Periodic
+    # kernel = SquaredExponentialPlusPeriodic(l=50.0, sigma_f=1.0, p=100.0, omega=1.0)
+    # kernel.print_params()
+    # kernel.plot()
 
-    # Squared Exponential * Periodic
-    kernel = SquaredExponentialTimesPeriodic(l=100.0, sigma_f=1.0, p=300.0, omega=1.0)
-    kernel.print_params()
-    kernel.plot()
+    # # Squared Exponential * Periodic
+    # kernel = SquaredExponentialTimesPeriodic(l=500.0, sigma_f=1.0, p=100.0, omega=1.0)
+    # kernel.print_params()
+    # kernel.plot()
