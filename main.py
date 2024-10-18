@@ -66,12 +66,11 @@ class GaussianProcess:
 
         optimizer = torch.optim.Adam(self.kernel.parameters(), lr=learning_rate)
         
-
         for i in tqdm(range(n_iters)):
-            optimizer.zero_grad()  # Clear the gradients
-            loss = -self.log_marginal_likelihood()  # Minimize the negative log marginal likelihood
-            loss.backward()  # Compute the gradients
-            optimizer.step()  # Update the hyperparameters
+            optimizer.zero_grad()  
+            loss = -self.log_marginal_likelihood()  
+            loss.backward()  
+            optimizer.step() 
             
             if i % 10 == 0:
                 print(f"Iteration {i+1}/{n_iters} - Loss: {loss.item()}")
@@ -94,33 +93,49 @@ class GaussianProcess:
         samples = np.random.multivariate_normal(mean_s.flatten(), cov_s, n_samples)
 
         # Plot the results
-        plt.figure(figsize=(10, 6))
+        plt.figure(figsize=(16, 6))
         plt.plot(X_test.numpy(), mean_s, 'b-', lw=2, label='Predictive mean')
 
         for i in range(n_samples):
             plt.plot(X_test.numpy(), samples[i], lw=1.5, label=f'Sample {i+1}')
 
         plt.legend()
-        plt.title('Gaussian Process Regression with Random Samples')
+        plt.title('Draws from the GP posterior')
         plt.xlabel('X')
         plt.ylabel('Y')
         plt.grid(True)
         plt.show()
         
 
-def plot_gp(X_train, y_train, X_test, X_underlying, y_underlying, mean_pred, cov_pred):
-    std = np.sqrt(np.diag(cov_pred.detach().numpy())) 
-    mean_pred = mean_pred.detach().numpy()
+    def plot_gp(self, X_train, y_train, X_test, X_underlying, y_underlying, mean_pred, cov_pred):
+        std = np.sqrt(np.diag(cov_pred.detach().numpy())) 
+        mean_pred = mean_pred.detach().numpy()
 
-    fig = plt.figure(figsize=(12, 12))
+        fig = plt.figure(figsize=(16,6))
 
-    plt.title("GP Regression")
-    plt.fill_between(X_test.flatten(), mean_pred.flatten()-2*std, mean_pred.flatten()+2*std, label='$\pm$2 standard deviations of posterior', color="#dddddd")
-    plt.plot(X_underlying, y_underlying, 'b-', label='Underlying function')
-    plt.plot(X_test, mean_pred, 'r-', label='Mean of posterior')  
-    plt.plot(X_train, y_train, 'kx', ms=8 ,label='Training data')
-    plt.legend()
-    plt.show()
+        plt.title("Gaussian Process Regression")
+        
+        # Plot ±2 standard deviations with lighter shade
+        plt.fill_between(X_test.flatten(), 
+                        mean_pred.flatten() - 2 * std, 
+                        mean_pred.flatten() + 2 * std, 
+                        label='$\pm$2 standard deviations of posterior', 
+                        color="#dddddd")
+        
+        # Plot ±1 standard deviation with a slightly darker shade
+        plt.fill_between(X_test.flatten(), 
+                        mean_pred.flatten() - std, 
+                        mean_pred.flatten() + std, 
+                        label='$\pm$1 standard deviation of posterior', 
+                        color="#bbbbbb")
+        
+        # Plot underlying function, posterior mean, and training data
+        plt.plot(X_underlying, y_underlying, 'b-', label='Underlying function')
+        plt.plot(X_test, mean_pred, 'r-', label='Mean of posterior')  
+        plt.plot(X_train, y_train, 'kx', ms=8, label='Training data')
+        
+        plt.legend()
+        plt.show()
 
    
 
@@ -149,7 +164,7 @@ def main():
     gp.plot_draws_from_gp(X_test, n_draws=10)
 
     # Plot the results using the covariance predictions as fill between
-    plot_gp(X_train, y_train, X_test, X_underlying, y_underlying, mean_pred, cov_pred)
+    gp.plot_gp(X_train, y_train, X_test, X_underlying, y_underlying, mean_pred, cov_pred)
 
         
        

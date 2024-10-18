@@ -18,8 +18,8 @@ for col in df.columns:
 # List of columns to plot (excluding those that contain '(ISO)' in the name)
 columns_to_plot = [col for col in df.columns if '(ISO)' not in col]
 
-# List all columns with both tide and height in the name
-columns_to_plot = [col for col in df.columns if 'tide' in col.lower() and 'height' in col.lower()]
+# # List all columns with both tide and height in the name
+# columns_to_plot = [col for col in df.columns if 'tide' in col.lower() and 'height' in col.lower()]
 
 # Plot each column
 for ax, column in zip(axs.flatten(), columns_to_plot):
